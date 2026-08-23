@@ -97,4 +97,15 @@ def del_item(item_id):
     except KeyError:
         abort(404,message="item not found")
 
-
+@app.put("/item/<string:item_id>")
+def update_item(item_id):
+    item_data = request.get_json()
+    if ("item_name" not in item_data or
+        "item_price" not in item_data):
+        abort(400,message="add item_name and item_price")
+    try:
+        item = items[item_id]
+        item |= item_data
+        return item
+    except KeyError:
+        abort (400,message="item not found")
