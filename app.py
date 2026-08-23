@@ -37,15 +37,27 @@ def get_item(item_id):
 @app.post("/store")
 def create_store():
     store_data = request.get_json()
+    if ("store_name" not in store_data):
+        abort(400,message="store_name not in json payload")
+    for store in stores.values():
+        if (store_data["store_name"]==store["store_name"]):
+            abort(400,message="store_name already exists")
+        
     store_id = uuid.uuid4().hex
     store = {**store_data,"store_id": store_id}
-    stores[store_id]
+    stores[store_id] = store
     return store, 201
 
 
 @app.post("/item") #item creating
 def add_item():   #not passing any param, how item_data getting values?
     item_data = request.get_json()
+    
+    if ("store_id" not in item_data 
+        or "item_name" not in item_data
+        or "item_price" not in item_data):
+        abort(400, message = "payload must have store_id,item_name,item_price")
+    
     if item_data["store_id"] not in stores:
         return {"message": "store not in database"}, 404
     
