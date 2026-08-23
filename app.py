@@ -7,15 +7,15 @@ from flask_smorest import abort
 app = Flask(__name__)
 
 
+
+#--------------------------------------STORE--------------------------------------------------
+
+
 # @app.route("/store", methods=['GET'])
 @app.get("/store")  # shorthand for above, same for post
 # only one method per endpoint, multiple will overwrite (last one remmains)
 def get_all_stores():
     return {"stores": list(stores.values())}
-
-@app.get("/item")
-def get_all_item():
-    return {"items": list(items.values())}
 
 @app.get("/store/<string:store_id>")
 def show_store(store_id):
@@ -23,15 +23,6 @@ def show_store(store_id):
         return stores[store_id]
     except KeyError:
         abort (404 ,message = "store not found in database")
-    
-    
-@app.get("/store/<string:item_id>") #repurposed from all store item to specific item
-def get_item(item_id):
-    try:
-        return items[item_id]
-    except KeyError:
-        abort (404 ,message = "item not found in database")
-
 
 #store creating
 @app.post("/store")
@@ -48,6 +39,33 @@ def create_store():
     stores[store_id] = store
     return store, 201
 
+@app.delete("/store/<string:store_id>")
+def del_store(store_id):
+    try:
+        del stores[store_id]
+        return {"message": "store deleted"}
+    except KeyError:
+        abort (404,message="store not found")
+
+
+#------------------------------------ITEM----------------------------------------------------
+
+
+
+@app.get("/item")
+def get_all_item():
+    return {"items": list(items.values())}
+    
+    
+@app.get("/store/<string:item_id>") #repurposed from all store item to specific item
+def get_item(item_id):
+    try:
+        return items[item_id]
+    except KeyError:
+        abort (404 ,message = "item not found in database")
+
+
+
 
 @app.post("/item") #item creating
 def add_item():   #not passing any param, how item_data getting values?
@@ -57,7 +75,12 @@ def add_item():   #not passing any param, how item_data getting values?
         or "item_name" not in item_data
         or "item_price" not in item_data):
         abort(400, message = "payload must have store_id,item_name,item_price")
-    
+        
+    for item in items.values():
+        if (item_data["item_name"]==item["item_name"]
+            and item_data["store_id"]==item["store_id"]):
+            abort(400,message = "duplictae item")
+            
     if item_data["store_id"] not in stores:
         return {"message": "store not in database"}, 404
     
@@ -66,7 +89,12 @@ def add_item():   #not passing any param, how item_data getting values?
     items[item_id] = item
     return item,201
 
-
-
+@app.delete("/item/<string:item_id>")
+def del_item(item_id):
+    try:
+        del items[item_id]
+        return {"message": "item deleted"}
+    except KeyError:
+        abort(404,message="item not found")
 
 
