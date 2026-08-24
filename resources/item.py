@@ -1,0 +1,54 @@
+from flask import request
+from db import items
+import uuid
+from flask.views import MethodView
+from flask_smorest import Blueprint,abort
+from schemas import ItemSchema,UpdateItemSchema
+
+blp = Blueprint("item", __name__, description = "item operation")
+
+@blp.route("/item")
+class ItemList(MethodView):
+    @blp.response(200,ItemSchema(many=True))
+    def get(self):
+        return items.values()
+    
+    @blp.arguments(ItemSchema)
+    @blp.response(201,ItemSchema)
+    def post(self,item_data):    
+        for item in items.values():
+            if (item_data["item_name"]==item["item_name"]
+                and item_data["store_id"]==item["store_id"]):
+                abort(400,message = "duplictae item")
+                
+        item_id = uuid.uuid4().hex
+        item = {**item_data,"item_id":item_id}
+        items[item_id] = item
+        return item,201
+
+    
+@blp.route("/item/<string:item_id>")
+class ItemID(MethodView):
+    @blp.response(200,ItemSchema)
+    def get (self,item_id):
+        try:
+            return items[item_id]
+        except KeyError:
+            abort (404 ,message = "item not found in database")
+            
+    def delete(self,item_id):
+        try:
+            del items[item_id]
+            return {"message": "item deleted"}
+        except KeyError:
+            abort(404,message="item not found")
+            
+    @blp.arguments(UpdateItemSchema)
+    @blp.response(200,ItemSchema)
+    def put(self,item_data,item_id):
+        try:
+            item = items[item_id]
+            item |= item_data
+            return item
+        except KeyError:
+            abort (400,message="item not found")
