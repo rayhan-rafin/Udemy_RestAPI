@@ -1,30 +1,26 @@
 from flask import request
-from db import stores, items
+from db import items
 import uuid
 from flask.views import MethodView
 from flask_smorest import Blueprint,abort
+from schemas import ItemSchema,UpdateItemSchema
 
 blp = Blueprint("item", __name__, description = "item operation")
 
 @blp.route("/item")
 class ItemList(MethodView):
+    @blp.response(200,ItemSchema(many=True))
     def get(self):
-        return {"items": list(items.values())}
-    def post(self):
-        item_data = request.get_json()
-        if ("store_id" not in item_data 
-            or "item_name" not in item_data
-            or "item_price" not in item_data):
-            abort(400, message = "payload must have store_id,item_name,item_price")
-            
+        return items.values()
+    
+    @blp.arguments(ItemSchema)
+    @blp.response(201,ItemSchema)
+    def post(self,item_data):    
         for item in items.values():
             if (item_data["item_name"]==item["item_name"]
                 and item_data["store_id"]==item["store_id"]):
                 abort(400,message = "duplictae item")
                 
-        if item_data["store_id"] not in stores:
-            return {"message": "store not in database"}, 404
-        
         item_id = uuid.uuid4().hex
         item = {**item_data,"item_id":item_id}
         items[item_id] = item
@@ -33,6 +29,7 @@ class ItemList(MethodView):
     
 @blp.route("/item/<string:item_id>")
 class ItemID(MethodView):
+    @blp.response(200,ItemSchema)
     def get (self,item_id):
         try:
             return items[item_id]
@@ -46,11 +43,9 @@ class ItemID(MethodView):
         except KeyError:
             abort(404,message="item not found")
             
-    def put(self,item_id):
-        item_data = request.get_json()
-        if ("item_name" not in item_data or
-            "item_price" not in item_data):
-            abort(400,message="add item_name and item_price")
+    @blp.arguments(UpdateItemSchema)
+    @blp.response(200,ItemSchema)
+    def put(self,item_data,item_id):
         try:
             item = items[item_id]
             item |= item_data
